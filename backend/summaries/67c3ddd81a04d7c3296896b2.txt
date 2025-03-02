@@ -1,0 +1,22 @@
+MEDICAL REPORT SUMMARY
+=====================
+
+KEY FINDINGS:
+- Elevated HbA1c (9.2%)
+- Elevated fasting blood glucose (180 mg/dL)
+- Elevated postprandial blood glucose (250 mg/dL)
+- Patient reports increased thirst and frequent urination
+- Family history of diabetes
+
+DIAGNOSIS:
+Type 2 Diabetes Mellitus
+
+RECOMMENDATIONS:
+- Initiate metformin 500mg twice daily with meals.
+- Recommend regular blood glucose monitoring.
+- Dietary consultation to discuss carbohydrate control and healthy eating habits.
+- Encourage regular physical activity.
+- Follow-up appointment in 3 months to reassess blood glucose control and adjust medication as needed.
+
+IMPORTANT DETAILS:
+Patient presented with elevated blood glucose levels and HbA1c values, consistent with uncontrolled diabetes. Patient also reported increased thirst and frequent urination.

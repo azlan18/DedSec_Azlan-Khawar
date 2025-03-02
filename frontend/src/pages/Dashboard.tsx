@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -28,75 +28,79 @@ import {
   Activity,
   FileUp,
   Heart,
-  UserCog
+  UserCog,
+  Loader2,
+  LogOut
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-hot-toast";
+
+interface Appointment {
+  _id: string;
+  doctorId: string;
+  date: string;
+  time: string;
+  facility: string;
+  department: string;
+  reason: string;
+  status: string;
+}
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [appointmentDetailsOpen, setAppointmentDetailsOpen] = useState(false);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
+  const [previousAppointments, setPreviousAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Previous appointments data (hardcoded for now)
-  const previousAppointments = [
-    {
-      id: 1,
-      date: "15 Feb 2024",
-      doctor: "Dr. Sarah Johnson",
-      facility: "City General Hospital",
-      reason: "Chest pain and shortness of breath",
-      diagnosis: "Acute bronchitis",
-      treatment: "Prescribed antibiotics and bronchodilators",
-      followUp: "2 weeks",
-      status: "Completed",
-    },
-    {
-      id: 2,
-      date: "28 Jan 2024",
-      doctor: "Dr. Michael Patel",
-      facility: "Community Health Center",
-      reason: "Routine health checkup",
-      diagnosis: "Healthy, minor vitamin D deficiency",
-      treatment: "Vitamin D supplements recommended",
-      followUp: "6 months",
-      status: "Completed",
-    },
-    {
-      id: 3,
-      date: "05 Dec 2023",
-      doctor: "Dr. Emily Rodriguez",
-      facility: "Urgent Care Clinic",
-      reason: "Severe headache and fever",
-      diagnosis: "Viral infection",
-      treatment: "Rest, fluids, and over-the-counter pain relievers",
-      followUp: "As needed",
-      status: "Completed",
-    },
-  ];
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    fetchAppointments();
+  }, [navigate]);
 
-  // Upcoming appointments data (hardcoded for now)
-  const upcomingAppointments = [
-    {
-      id: 1,
-      date: "20 Mar 2024",
-      time: "10:30 AM",
-      doctor: "Dr. David Chen",
-      facility: "City General Hospital",
-      department: "Cardiology",
-      reason: "Follow-up on medication effectiveness",
-      status: "Confirmed",
-    },
-    {
-      id: 2,
-      date: "05 Apr 2024",
-      time: "2:15 PM",
-      doctor: "Dr. Lisa Wang",
-      facility: "Community Health Center",
-      department: "General Medicine",
-      reason: "Annual physical examination",
-      status: "Scheduled",
-    },
-  ];
+  const fetchAppointments = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/appointments/user', {
+        headers: {
+          'token': token
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          navigate('/login');
+          return;
+        }
+        throw new Error('Failed to fetch appointments');
+      }
+
+      const appointments = await response.json();
+      
+      // Sort appointments into upcoming and previous
+      const now = new Date();
+      const upcoming = appointments.filter((apt: Appointment) => new Date(apt.date) >= now);
+      const previous = appointments.filter((apt: Appointment) => new Date(apt.date) < now);
+
+      setUpcomingAppointments(upcoming);
+      setPreviousAppointments(previous);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      toast.error('Failed to fetch appointments');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Critical alerts (hardcoded for now)
   const criticalAlerts = [
@@ -135,13 +139,18 @@ const Dashboard: React.FC = () => {
     },
   };
 
-  const handleAppointmentClick = (appointment: any) => {
+  const handleAppointmentClick = (appointment: Appointment) => {
     setSelectedAppointment(appointment);
     setAppointmentDetailsOpen(true);
   };
 
   const handleNavigation = (path: string) => {
     navigate(path);
+  };
+
+  const handleLogout = () => {
+    navigate('/');
+    toast.success('Logged out successfully');
   };
 
   return (
@@ -161,6 +170,14 @@ const Dashboard: React.FC = () => {
           <Button variant="destructive" className="gap-2">
             <AlertCircle className="h-4 w-4" />
             <span className="hidden md:inline">Emergency</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden md:inline">Logout</span>
           </Button>
         </div>
       </div>
@@ -214,14 +231,14 @@ const Dashboard: React.FC = () => {
           <CardContent className="space-y-4">
             <Button 
               className="w-full justify-start bg-blue-600 hover:bg-blue-700"
-              onClick={() => handleNavigation('/schedule-appointment')}
+              onClick={() => handleNavigation('/create-emergency-call')}
             >
               <Calendar className="mr-2 h-4 w-4" /> Schedule Appointment
             </Button>
             <Button 
               variant="outline" 
               className="w-full justify-start"
-              onClick={() => handleNavigation('/add-reports')}
+              onClick={() => handleNavigation('/medical-reports')}
             >
               <FileUp className="mr-2 h-4 w-4" /> Add Medical Reports
             </Button>
@@ -287,79 +304,99 @@ const Dashboard: React.FC = () => {
 
               <TabsContent value="upcoming" className="space-y-4">
                 <ScrollArea className="h-[250px]">
-                  <div className="space-y-4">
-                    {upcomingAppointments.map((appointment) => (
-                      <div 
-                        key={appointment.id} 
-                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                        onClick={() => handleAppointmentClick(appointment)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="bg-blue-100 p-2 rounded-full">
-                              <Calendar className="h-4 w-4 text-blue-700" />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                  ) : upcomingAppointments.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No upcoming appointments
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {upcomingAppointments.map((appointment) => (
+                        <div 
+                          key={appointment._id} 
+                          className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                          onClick={() => handleAppointmentClick(appointment)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-blue-100 p-2 rounded-full">
+                                <Calendar className="h-4 w-4 text-blue-700" />
+                              </div>
+                              <div>
+                                <p className="font-medium">Doctor Appointment</p>
+                                <p className="text-sm text-gray-500">{appointment.facility} - {appointment.department}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">{appointment.doctor}</p>
-                              <p className="text-sm text-gray-500">{appointment.facility} - {appointment.department}</p>
-                            </div>
+                            <Badge className={
+                              appointment.status === "Confirmed" 
+                                ? "bg-green-100 text-green-800" 
+                                : "bg-blue-100 text-blue-800"
+                            }>
+                              {appointment.status}
+                            </Badge>
                           </div>
-                          <Badge className={
-                            appointment.status === "Confirmed" 
-                              ? "bg-green-100 text-green-800" 
-                              : "bg-blue-100 text-blue-800"
-                          }>
-                            {appointment.status}
-                          </Badge>
+                          <div className="mt-2 flex items-center text-sm text-gray-500 space-x-3">
+                            <span className="flex items-center">
+                              <Calendar className="mr-1 h-4 w-4" /> {new Date(appointment.date).toLocaleDateString()}
+                            </span>
+                            <span className="flex items-center">
+                              <Clock className="mr-1 h-4 w-4" /> {appointment.time}
+                            </span>
+                          </div>
                         </div>
-                        <div className="mt-2 flex items-center text-sm text-gray-500 space-x-3">
-                          <span className="flex items-center">
-                            <Calendar className="mr-1 h-4 w-4" /> {appointment.date}
-                          </span>
-                          <span className="flex items-center">
-                            <Clock className="mr-1 h-4 w-4" /> {appointment.time}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </ScrollArea>
               </TabsContent>
 
               <TabsContent value="previous" className="space-y-4">
                 <ScrollArea className="h-[250px]">
-                  <div className="space-y-4">
-                    {previousAppointments.map((appointment) => (
-                      <div 
-                        key={appointment.id} 
-                        className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
-                        onClick={() => handleAppointmentClick(appointment)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div className="bg-gray-200 p-2 rounded-full">
-                              <User className="h-4 w-4 text-gray-600" />
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                  ) : previousAppointments.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No previous appointments
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {previousAppointments.map((appointment) => (
+                        <div 
+                          key={appointment._id} 
+                          className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                          onClick={() => handleAppointmentClick(appointment)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="bg-gray-200 p-2 rounded-full">
+                                <User className="h-4 w-4 text-gray-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium">Past Appointment</p>
+                                <p className="text-sm text-gray-500">{appointment.facility}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">{appointment.doctor}</p>
-                              <p className="text-sm text-gray-500">{appointment.facility}</p>
-                            </div>
+                            <Badge variant="outline" className="bg-gray-100">
+                              {appointment.status}
+                            </Badge>
                           </div>
-                          <Badge variant="outline" className="bg-gray-100">
-                            {appointment.status}
-                          </Badge>
+                          <div className="mt-2 flex text-sm text-gray-500 space-x-3">
+                            <span className="flex items-center">
+                              <Calendar className="mr-1 h-4 w-4" /> {new Date(appointment.date).toLocaleDateString()}
+                            </span>
+                            <span className="flex items-center">
+                              <FileText className="mr-1 h-4 w-4" /> {appointment.reason.substring(0, 20)}...
+                            </span>
+                          </div>
                         </div>
-                        <div className="mt-2 flex text-sm text-gray-500 space-x-3">
-                          <span className="flex items-center">
-                            <Calendar className="mr-1 h-4 w-4" /> {appointment.date}
-                          </span>
-                          <span className="flex items-center">
-                            <FileText className="mr-1 h-4 w-4" /> {appointment.reason.substring(0, 20)}...
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </ScrollArea>
               </TabsContent>
             </Tabs>
@@ -369,72 +406,47 @@ const Dashboard: React.FC = () => {
 
       {/* Appointment Details Dialog */}
       <Dialog open={appointmentDetailsOpen} onOpenChange={setAppointmentDetailsOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Appointment Details</DialogTitle>
             <DialogDescription>
-              {selectedAppointment?.status === "Completed" ? "Previous appointment information" : "Upcoming appointment information"}
+              View the details of your medical appointment
             </DialogDescription>
           </DialogHeader>
-          
           {selectedAppointment && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-sm text-gray-500">Doctor</p>
-                  <p className="font-medium">{selectedAppointment.doctor}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Facility</p>
-                  <p className="font-medium">{selectedAppointment.facility}</p>
-                </div>
+              <div>
+                <p className="text-sm text-gray-500">Date & Time</p>
+                <p className="font-medium">
+                  {new Date(selectedAppointment.date).toLocaleDateString()} at {selectedAppointment.time}
+                </p>
               </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-sm text-gray-500">Date</p>
-                  <p className="font-medium">{selectedAppointment.date}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">
-                    {selectedAppointment.time ? "Time" : "Status"}
-                  </p>
-                  <p className="font-medium">
-                    {selectedAppointment.time || selectedAppointment.status}
-                  </p>
-                </div>
+              <div>
+                <p className="text-sm text-gray-500">Doctor</p>
+                <p className="font-medium">Doctor Appointment</p>
               </div>
-              
+              <div>
+                <p className="text-sm text-gray-500">Facility</p>
+                <p className="font-medium">{selectedAppointment.facility}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Department</p>
+                <p className="font-medium">{selectedAppointment.department}</p>
+              </div>
               <div>
                 <p className="text-sm text-gray-500">Reason</p>
                 <p className="font-medium">{selectedAppointment.reason}</p>
               </div>
-              
-              {selectedAppointment.status === "Completed" && (
-                <>
-                  <div>
-                    <p className="text-sm text-gray-500">Diagnosis</p>
-                    <p className="font-medium">{selectedAppointment.diagnosis}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">Treatment</p>
-                    <p className="font-medium">{selectedAppointment.treatment}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm text-gray-500">Follow-up</p>
-                    <p className="font-medium">{selectedAppointment.followUp}</p>
-                  </div>
-                </>
-              )}
-              
-              {selectedAppointment.status !== "Completed" && (
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button variant="outline">Reschedule</Button>
-                  <Button variant="destructive">Cancel</Button>
-                </div>
-              )}
+              <div>
+                <p className="text-sm text-gray-500">Status</p>
+                <Badge className={
+                  selectedAppointment.status === "Confirmed"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-blue-100 text-blue-800"
+                }>
+                  {selectedAppointment.status}
+                </Badge>
+              </div>
             </div>
           )}
         </DialogContent>

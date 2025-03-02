@@ -1,0 +1,21 @@
+MEDICAL REPORT SUMMARY
+=====================
+
+KEY FINDINGS:
+- Elevated HbA1c (7.5%)
+- Fasting blood glucose level of 140 mg/dL
+- Elevated BMI (32)
+- Family history of diabetes
+
+DIAGNOSIS:
+Type 2 Diabetes Mellitus
+
+RECOMMENDATIONS:
+- Begin Metformin 500mg twice daily
+- Dietary changes to reduce carbohydrate intake
+- Regular exercise (at least 30 minutes most days of the week)
+- Follow-up appointment in 3 months to monitor blood glucose levels and adjust medication as needed
+- Referral to a registered dietitian for personalized meal planning
+
+IMPORTANT DETAILS:
+Patient Ramakant Sankhe presents with elevated blood glucose levels, consistent with Type 2 Diabetes.  Patient reports increased thirst and frequent urination. Family history of diabetes is present. Patient's weight and sedentary lifestyle are contributing factors.

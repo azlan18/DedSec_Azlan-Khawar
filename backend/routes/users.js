@@ -169,4 +169,19 @@ router.put('/update', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/users/doctors
+// @desc    Get all doctors
+// @access  Private
+router.get('/doctors', auth, async (req, res) => {
+  try {
+    const doctors = await User.find({ role: 'doctor' })
+      .select('name department')
+      .sort({ name: 1 });
+    res.json(doctors);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;
